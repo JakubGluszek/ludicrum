@@ -25,7 +25,7 @@ const CurrentLocation: React.FC = () => {
 };
 
 interface Props {
-  setSelectedEvent: (event: Event | null) => void;
+  setSelectedEvent: (event: Event | null) => void,
 }
 
 const Map: React.FC<Props> = ({ setSelectedEvent }) => {
