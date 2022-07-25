@@ -1,32 +1,39 @@
+import React from "react";
 import type { NextPage } from "next";
 import Head from "next/head";
 import dynamic from "next/dynamic";
+import { Event } from "@prisma/client";
 
-const Map = dynamic(() => import("../components/Map"), { ssr: false })
+const Map = dynamic(() => import("../components/Map"), { ssr: false });
 
 const Home: NextPage = () => {
+  const [selectedEvent, setSelectedEvent] = React.useState<Event | null>(null);
+
+  React.useEffect(() => {
+    console.log("selected event, ", selectedEvent);
+  }, [selectedEvent]);
   return (
     <>
       <Head>
         <title>Ludicrum</title>
-        <meta name="description" content="A platform where you can find street performances around you." />
-        <link rel="icon" href="/favicon.ico" />
-        <link
-          rel="stylesheet"
-          href="https://unpkg.com/leaflet@1.8.0/dist/leaflet.css"
-          integrity="sha512-hoalWLoI8r4UszCkZ5kL8vayOGVae1oxXe/2A4AO6J9+580uKHDO3JdHb7NzwwzK5xr/Fs0W40kiNHxM9vyTtQ=="
-          crossOrigin=""
-        />
       </Head>
 
-      <main className="">
+      <nav className="navbar">
+        <div className="navbar-start">
+          <span>Ludicrum</span>
+        </div>
+        <div className="navbar-end">
+          <button className="btn btn-ghost">Login</button>
+        </div>
+      </nav>
+
+      <main className="text-center p-4">
         <h1>Find street performances around you.</h1>
       </main>
 
-      <div className="w-full h-96 flex">
-        <Map />
+      <div className="w-full h-[600px] flex">
+        <Map setSelectedEvent={setSelectedEvent} />
       </div>
-
     </>
   );
 };

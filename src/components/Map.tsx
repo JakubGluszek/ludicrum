@@ -1,7 +1,15 @@
+import { Event } from "@prisma/client";
 import React from "react";
 import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
+import { trpc } from "../utils/trpc";
 
-const Map: React.FC = () => {
+interface Props {
+  setSelectedEvent: (event: Event) => void;
+}
+
+const Map: React.FC<Props> = ({ setSelectedEvent }) => {
+  const eventsQuery = trpc.useQuery(["events.all-events"]);
+
   return (
     <MapContainer
       className="grow"
@@ -13,13 +21,19 @@ const Map: React.FC = () => {
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      <Marker position={[51.505, -0.09]}>
-        <Popup>
-          A pretty CSS3 popup. <br /> Easily customizable.
-        </Popup>
-      </Marker>
+      {eventsQuery.data?.map((event) => (
+        <Marker
+          eventHandlers={{ click: () => setSelectedEvent(event) }}
+          key={event.id}
+          position={[parseFloat(event.lat), parseFloat(event.lng)]}
+        >
+          <Popup>
+            <span>{event.name}</span>
+          </Popup>
+        </Marker>
+      ))}
     </MapContainer>
-  )
+  );
 };
 
 export default Map;
