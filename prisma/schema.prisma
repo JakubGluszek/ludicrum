@@ -10,6 +10,31 @@ datasource db {
     url      = env("DATABASE_URL")
 }
 
+model Event {
+    id          String   @id @default(cuid())
+    name        String
+    description String   @db.Text
+    lat         String
+    lng         String
+    date        DateTime
+    reviewCode  String?
+
+    userId      String        @unique
+    user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+    EventReview EventReview[]
+}
+
+model EventReview {
+    id      String  @id @default(cuid())
+    body    String? @db.Text
+    rating  Int
+    userId  String
+    eventId String
+
+    event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+    user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
 // Necessary for Next auth
 model Account {
     id                String  @id @default(cuid())
@@ -38,13 +63,15 @@ model Session {
 }
 
 model User {
-    id            String    @id @default(cuid())
+    id            String        @id @default(cuid())
     name          String?
-    email         String?   @unique
+    email         String?       @unique
     emailVerified DateTime?
     image         String?
     accounts      Account[]
     sessions      Session[]
+    Event         Event[]
+    EventReview   EventReview[]
 }
 
 model VerificationToken {
