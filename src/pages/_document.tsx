@@ -6,7 +6,7 @@ export default function Document() {
       <Head>
         <meta
           name="description"
-          content="A platform where you can find street performances around you."
+          content="A platform where you can find events & street performances around you."
         />
         <link rel="icon" href="/favicon.ico" />
         <link
