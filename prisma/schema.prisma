@@ -19,9 +19,9 @@ model Event {
     date        DateTime
     reviewCode  String?
 
-    userId      String        @unique
-    user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-    EventReview EventReview[]
+    userId  String        @unique
+    user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+    reviews EventReview[]
 }
 
 model EventReview {
