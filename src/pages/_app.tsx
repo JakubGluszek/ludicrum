@@ -5,6 +5,8 @@ import type { AppType } from "next/dist/shared/lib/utils";
 import superjson from "superjson";
 import { SessionProvider } from "next-auth/react";
 import "../styles/globals.css";
+import { MantineProvider } from "@mantine/core";
+import { Toaster } from "react-hot-toast";
 
 const MyApp: AppType = ({
   Component,
@@ -12,7 +14,10 @@ const MyApp: AppType = ({
 }) => {
   return (
     <SessionProvider session={session}>
-      <Component {...pageProps} />
+      <MantineProvider>
+        <Component {...pageProps} />
+        <Toaster position="bottom-center" />
+      </MantineProvider>
     </SessionProvider>
   );
 };

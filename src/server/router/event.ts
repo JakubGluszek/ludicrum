@@ -47,19 +47,32 @@ const eventRouter = createRouter()
   })
   .mutation("create", {
     input: z.object({
-      title: z.string().min(6).max(64),
-      description: z.string().min(0).max(512),
+      title: z.string().min(4).max(64),
+      description: z.string().min(16).max(512),
       lat: z.string(),
       lng: z.string(),
       date: z.date(),
+      isHost: z.boolean(),
     }),
     async resolve({ ctx, input }) {
-      const event = await ctx.prisma.event.create({
-        data: {
-          ...input,
-          userId: ctx.session.user.id,
-        },
-      });
+      let event;
+      try {
+        event = await ctx.prisma.event.create({
+          data: {
+            title: input.title,
+            description: input.description,
+            lat: input.lat,
+            lng: input.lng,
+            date: input.date,
+            userId: input.isHost ? ctx.session.user.id : null,
+          },
+        });
+      } catch (err) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "You can only host 1 event at a time",
+        });
+      }
 
       return event;
     },
@@ -68,8 +81,8 @@ const eventRouter = createRouter()
     input: z.object({
       id: z.string().cuid(),
       data: z.object({
-        title: z.string().min(6).max(64).optional(),
-        description: z.string().min(0).max(512).optional(),
+        title: z.string().min(4).max(64).optional(),
+        description: z.string().min(16).max(512).optional(),
         date: z.date().optional(),
         lat: z.string().optional(),
         lng: z.string().optional(),
