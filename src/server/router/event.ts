@@ -27,20 +27,6 @@ const eventRouter = createRouter()
               image: true,
             },
           },
-          reviews: {
-            select: {
-              id: true,
-              body: true,
-              rating: true,
-              user: {
-                select: {
-                  id: true,
-                  name: true,
-                  image: true,
-                },
-              },
-            },
-          },
         },
       });
 
@@ -61,7 +47,7 @@ const eventRouter = createRouter()
   })
   .mutation("create", {
     input: z.object({
-      name: z.string().min(6).max(64),
+      title: z.string().min(6).max(64),
       description: z.string().min(0).max(512),
       lat: z.string(),
       lng: z.string(),
@@ -71,7 +57,7 @@ const eventRouter = createRouter()
       const event = await ctx.prisma.event.create({
         data: {
           ...input,
-          userId: ctx.session.user.id!,
+          userId: ctx.session.user.id,
         },
       });
 
@@ -82,11 +68,11 @@ const eventRouter = createRouter()
     input: z.object({
       id: z.string().cuid(),
       data: z.object({
-        name: z.string().min(6).max(64).optional(),
+        title: z.string().min(6).max(64).optional(),
         description: z.string().min(0).max(512).optional(),
+        date: z.date().optional(),
         lat: z.string().optional(),
         lng: z.string().optional(),
-        date: z.date().optional(),
       }),
     }),
     async resolve({ ctx, input }) {
@@ -101,17 +87,46 @@ const eventRouter = createRouter()
       return event;
     },
   })
+  .query("my-event", {
+    async resolve({ ctx }) {
+      const event = await ctx.prisma.event.findFirst({
+        where: {
+          userId: ctx.session.user.id,
+        },
+      });
+
+      return event;
+    },
+  })
+  .mutation("delete", {
+    input: z.object({
+      id: z.string().cuid(),
+    }),
+    async resolve({ ctx, input }) {
+      const { id } = await ctx.prisma.event.delete({
+        where: {
+          id: input.id,
+          userId: ctx.session.user.id,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      return { id };
+    },
+  })
   .mutation("generate-review-code", {
     input: z.object({
       id: z.string().cuid(),
     }),
     async resolve({ ctx, input }) {
-      let r = (Math.random() + 1).toString(36).substring(7);
+      const r = (Math.random() + 1).toString(36).substring(7);
 
       await ctx.prisma.event.update({
         where: {
           id: input.id,
-          userId: ctx.session.user.id!,
+          userId: ctx.session.user.id,
         },
         data: {
           reviewCode: r,
@@ -119,16 +134,6 @@ const eventRouter = createRouter()
       });
 
       return r;
-    },
-  })
-  .mutation("create-review", {
-    input: z.object({
-      eventId: z.string().cuid(),
-      body: z.string().max(256).optional(),
-      rating: z.number(),
-    }),
-    async resolve({ ctx, input }) {
-      return;
     },
   });
 

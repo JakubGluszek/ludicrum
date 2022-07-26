@@ -12,27 +12,30 @@ datasource db {
 
 model Event {
     id          String   @id @default(cuid())
-    name        String
+    title       String
     description String   @db.Text
     lat         String
     lng         String
     date        DateTime
     reviewCode  String?
 
-    userId  String        @unique
-    user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId  String?       @unique
+    user    User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
     reviews EventReview[]
 }
 
 model EventReview {
-    id      String  @id @default(cuid())
-    body    String? @db.Text
+    id      String   @id @default(cuid())
     rating  Int
+    body    String?  @db.Text
+    date    DateTime @default(now())
     userId  String
     eventId String
 
     event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
     user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@unique([userId, eventId], name: "reviewIdentifier")
 }
 
 // Necessary for Next auth
