@@ -17,6 +17,7 @@ model Event {
     lat         String
     lng         String
     date        DateTime
+    dateEnd     DateTime
     reviewCode  String?
 
     userId  String?       @unique

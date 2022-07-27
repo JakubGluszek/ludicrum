@@ -3,6 +3,7 @@ import React from "react";
 import {
   MapContainer,
   Marker,
+  Popup,
   TileLayer,
   Tooltip,
   useMapEvents,
@@ -18,6 +19,8 @@ import { trpc } from "../utils/trpc";
 import { useForm } from "react-hook-form";
 import { DatePicker, TimeInput } from "@mantine/dates";
 import toast from "react-hot-toast";
+import { useSession } from "next-auth/react";
+import { Loader } from "@mantine/core";
 
 type CreateEventFormValues = {
   title: string;
@@ -37,7 +40,7 @@ const CurrentLocation: React.FC = () => {
 
   return (
     <button
-      className="z-[500] absolute left-16 top-[10px] bg-white text-black border-2 border-black border-opacity-30 p-1 rounded"
+      className="z-[500] absolute left-[11px] top-20 bg-white text-black border-2 border-black border-opacity-30 p-1 rounded"
       onClick={() => map.locate()}
     >
       <MdMyLocation size={20} />
@@ -49,8 +52,9 @@ const AddEvent: React.FC = () => {
   const [viewAddEvent, setViewAddEvent] = React.useState(false);
   const [date, setDate] = React.useState<Date | null>(new Date());
   const [time, setTime] = React.useState(new Date());
+  const [dateEnd, setDateEnd] = React.useState<Date | null>(new Date());
 
-  const { register, handleSubmit } = useForm<CreateEventFormValues>();
+  const { register, handleSubmit, setValue } = useForm<CreateEventFormValues>();
   const map = useMapEvents({});
 
   const [position, setPosition] = React.useState(map.getCenter());
@@ -77,30 +81,45 @@ const AddEvent: React.FC = () => {
   });
 
   const onSubmit = handleSubmit(async (data) => {
-    if (date) {
+    if (date && dateEnd) {
       date.setHours(time.getHours());
       date.setMinutes(time.getMinutes());
+      date.setSeconds(0)
+
+      dateEnd.setDate(date.getDate());
+      dateEnd.setMonth(date.getMonth());
+      dateEnd.setFullYear(date.getFullYear());
+      dateEnd.setSeconds(0)
+
       if (date < new Date()) {
         toast.error("Have you got a time machine?");
         return;
       }
 
-      try {
-        await create.mutateAsync({
-          ...data,
-          lat: position.lat.toString(),
-          lng: position.lng.toString(),
-          date: date,
-        });
-        toast.success("Event added");
-        setViewAddEvent(false);
-      } catch (err) {
-        toast.error(create.error?.message ?? "Something went wrong");
+      if (dateEnd < date) {
+        toast.error("Can't end before it even starts..");
+        return;
       }
+
+      await create.mutateAsync({
+        ...data,
+        lat: position.lat.toString(),
+        lng: position.lng.toString(),
+        date: date,
+        dateEnd: dateEnd,
+      });
+      toast.success("Event added");
+      setViewAddEvent(false);
     } else {
       toast.error("You must pick a date");
     }
   });
+
+  React.useEffect(() => {
+    if (create.isError) {
+      toast.error(create.error.message);
+    }
+  }, [create]);
 
   const autoGrow = (e: React.FormEvent<HTMLTextAreaElement>) => {
     e.currentTarget.style.height = "16px";
@@ -110,7 +129,7 @@ const AddEvent: React.FC = () => {
   return (
     <>
       <button
-        className="z-[5000] absolute left-28 top-2 btn btn-primary btn-sm gap-2"
+        className="z-[500] absolute left-3 top-32 btn btn-primary btn-sm gap-2 p-0.5 rounded-sm"
         onClick={() => {
           if (!viewAddEvent) {
             setPosition(map.getCenter());
@@ -119,15 +138,9 @@ const AddEvent: React.FC = () => {
         }}
       >
         {viewAddEvent ? (
-          <>
-            <MdCancel size={24} />
-            <span>Cancel</span>
-          </>
+          <MdCancel size={24} />
         ) : (
-          <>
-            <MdAddCircleOutline size={24} />
-            <span>Add event</span>
-          </>
+          <MdAddCircleOutline size={24} />
         )}
       </button>
 
@@ -139,13 +152,20 @@ const AddEvent: React.FC = () => {
           position={position}
           draggable
         >
-          <Tooltip className="p-4 rounded" interactive permanent>
+          <Tooltip permanent>New</Tooltip>
+          <Popup autoPan>
             <form onSubmit={onSubmit} className="form-control gap-2">
               <input
-                className="input input-bordered input-sm"
+                className="input input-bordered input-sm bg-transparent"
                 type="text"
+                minLength={4}
+                maxLength={64}
                 placeholder="Title"
-                {...register("title")}
+                {...register("title", {
+                  minLength: 4,
+                  maxLength: 64,
+                  required: true,
+                })}
               />
               <textarea
                 className="textarea bg-transparent textarea-bordered overflow-hidden resize-none"
@@ -153,7 +173,11 @@ const AddEvent: React.FC = () => {
                 maxLength={256}
                 onInput={(e) => autoGrow(e)}
                 placeholder="Describe event"
-                {...register("description", { minLength: 16, maxLength: 512 })}
+                {...register("description", {
+                  minLength: 16,
+                  maxLength: 512,
+                  required: true,
+                })}
               />
               <DatePicker
                 icon={<MdCalendarToday size={16} />}
@@ -164,9 +188,16 @@ const AddEvent: React.FC = () => {
                 placeholder="Pick date"
               />
               <TimeInput
+                label="Starts at"
                 icon={<MdAccessTime size={16} />}
                 value={time}
                 onChange={setTime}
+              />
+              <TimeInput
+                label="Ends at"
+                icon={<MdAccessTime size={16} />}
+                value={dateEnd}
+                onChange={setDateEnd}
               />
               <label className="label cursor-pointer">
                 <span className="label-text">I am the host</span>
@@ -176,13 +207,11 @@ const AddEvent: React.FC = () => {
                   {...register("isHost")}
                 />
               </label>
-              <input
-                className="btn btn-primary btn-sm"
-                type="submit"
-                value="Add event"
-              />
+              <button className="btn btn-primary btn-sm" type="submit">
+                {create.isLoading ? <Loader size={16} /> : "Add event"}
+              </button>
             </form>
-          </Tooltip>
+          </Popup>
         </Marker>
       )}
     </>
@@ -195,6 +224,7 @@ interface MapProps {
 
 const Map: React.FC<MapProps> = ({ setSelectedEvent }) => {
   const events = trpc.useQuery(["events.all-events"]);
+  const { data } = useSession();
 
   return (
     <MapContainer
@@ -203,17 +233,18 @@ const Map: React.FC<MapProps> = ({ setSelectedEvent }) => {
       className="grow"
       center={[51.505, -0.09]}
       zoom={13}
-      scrollWheelZoom={false}
+      scrollWheelZoom={true}
+      touchZoom={true}
     >
-      <CurrentLocation />
-      <AddEvent />
-
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
+      <CurrentLocation />
+      {data && <AddEvent />}
       {events.data?.map((event) => (
         <Marker
+          opacity={event.dateEnd < new Date() ? 0.6 : 1}
           eventHandlers={{
             click: () => setSelectedEvent(event),
           }}

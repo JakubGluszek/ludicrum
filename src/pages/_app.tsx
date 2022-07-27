@@ -1,4 +1,5 @@
 // src/pages/_app.tsx
+import React from "react";
 import { withTRPC } from "@trpc/next";
 import type { AppRouter } from "../server/router";
 import type { AppType } from "next/dist/shared/lib/utils";
@@ -12,6 +13,14 @@ const MyApp: AppType = ({
   Component,
   pageProps: { session, ...pageProps },
 }) => {
+  React.useEffect(() => {
+    const theme = sessionStorage.getItem("theme");
+    if (theme) {
+      const html = document.querySelector("html");
+      html?.setAttribute("data-theme", theme);
+    }
+  }, []);
+
   return (
     <SessionProvider session={session}>
       <MantineProvider>

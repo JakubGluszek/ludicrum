@@ -52,6 +52,7 @@ const eventRouter = createRouter()
       lat: z.string(),
       lng: z.string(),
       date: z.date(),
+      dateEnd: z.date(),
       isHost: z.boolean(),
     }),
     async resolve({ ctx, input }) {
@@ -64,6 +65,7 @@ const eventRouter = createRouter()
             lat: input.lat,
             lng: input.lng,
             date: input.date,
+            dateEnd: input.dateEnd,
             userId: input.isHost ? ctx.session.user.id : null,
           },
         });
@@ -84,6 +86,7 @@ const eventRouter = createRouter()
         title: z.string().min(4).max(64).optional(),
         description: z.string().min(16).max(512).optional(),
         date: z.date().optional(),
+        dateEnd: z.date().optional(),
         lat: z.string().optional(),
         lng: z.string().optional(),
       }),
@@ -116,6 +119,29 @@ const eventRouter = createRouter()
       id: z.string().cuid(),
     }),
     async resolve({ ctx, input }) {
+      const event = await ctx.prisma.event.findFirst({
+        where: {
+          id: input.id,
+        },
+      });
+
+      if (event) {
+        if (event.userId && event.userId !== ctx.session.user.id) {
+          throw new TRPCError({ code: "UNAUTHORIZED" });
+        }
+
+        const { id } = await ctx.prisma.event.delete({
+          where: {
+            id: input.id,
+          },
+          select: {
+            id: true,
+          },
+        });
+
+        return { id };
+      }
+
       const { id } = await ctx.prisma.event.delete({
         where: {
           id: input.id,

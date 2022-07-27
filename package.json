@@ -21,6 +21,7 @@
     "@trpc/react": "^9.26.2",
     "@trpc/server": "^9.26.2",
     "daisyui": "^2.20.0",
+    "dayjs": "^1.11.4",
     "leaflet": "^1.8.0",
     "next": "12.2.3",
     "next-auth": "^4.10.2",
