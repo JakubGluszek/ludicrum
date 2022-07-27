@@ -54,7 +54,7 @@ const AddEvent: React.FC = () => {
   const [time, setTime] = React.useState(new Date());
   const [dateEnd, setDateEnd] = React.useState<Date | null>(new Date());
 
-  const { register, handleSubmit, setValue } = useForm<CreateEventFormValues>();
+  const { register, handleSubmit } = useForm<CreateEventFormValues>();
   const map = useMapEvents({});
 
   const [position, setPosition] = React.useState(map.getCenter());
@@ -84,12 +84,12 @@ const AddEvent: React.FC = () => {
     if (date && dateEnd) {
       date.setHours(time.getHours());
       date.setMinutes(time.getMinutes());
-      date.setSeconds(0)
+      date.setSeconds(0);
 
       dateEnd.setDate(date.getDate());
       dateEnd.setMonth(date.getMonth());
       dateEnd.setFullYear(date.getFullYear());
-      dateEnd.setSeconds(0)
+      dateEnd.setSeconds(0);
 
       if (date < new Date()) {
         toast.error("Have you got a time machine?");
@@ -170,7 +170,7 @@ const AddEvent: React.FC = () => {
               <textarea
                 className="textarea bg-transparent textarea-bordered overflow-hidden resize-none"
                 minLength={16}
-                maxLength={256}
+                maxLength={512}
                 onInput={(e) => autoGrow(e)}
                 placeholder="Describe event"
                 {...register("description", {
@@ -219,19 +219,26 @@ const AddEvent: React.FC = () => {
 };
 
 interface MapProps {
-  setSelectedEvent: (event: Event | null) => void;
+  setSelectedEventId: (id: string | null) => void;
 }
 
-const Map: React.FC<MapProps> = ({ setSelectedEvent }) => {
+const Map: React.FC<MapProps> = ({ setSelectedEventId }) => {
   const events = trpc.useQuery(["events.all-events"]);
+  const myEvent = trpc.useQuery(["events.my-event"]);
   const { data } = useSession();
+
+  if (myEvent.isLoading) return null;
 
   return (
     <MapContainer
       doubleClickZoom={false}
       fadeAnimation={true}
       className="grow"
-      center={[51.505, -0.09]}
+      center={
+        myEvent.data
+          ? [parseFloat(myEvent.data.lat), parseFloat(myEvent.data.lng)]
+          : [51.505, -0.09]
+      }
       zoom={13}
       scrollWheelZoom={true}
       touchZoom={true}
@@ -246,11 +253,15 @@ const Map: React.FC<MapProps> = ({ setSelectedEvent }) => {
         <Marker
           opacity={event.dateEnd < new Date() ? 0.6 : 1}
           eventHandlers={{
-            click: () => setSelectedEvent(event),
+            click: () => setSelectedEventId(event.id),
           }}
           key={event.id}
           position={[parseFloat(event.lat!), parseFloat(event.lng!)]}
-        />
+        >
+          {event.userId === data?.user?.id && (
+            <Tooltip permanent>My event</Tooltip>
+          )}
+        </Marker>
       ))}
     </MapContainer>
   );

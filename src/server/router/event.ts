@@ -56,9 +56,8 @@ const eventRouter = createRouter()
       isHost: z.boolean(),
     }),
     async resolve({ ctx, input }) {
-      let event;
       try {
-        event = await ctx.prisma.event.create({
+        const event = await ctx.prisma.event.create({
           data: {
             title: input.title,
             description: input.description,
@@ -69,14 +68,13 @@ const eventRouter = createRouter()
             userId: input.isHost ? ctx.session.user.id : null,
           },
         });
+        return event;
       } catch (err) {
         throw new TRPCError({
           code: "BAD_REQUEST",
           message: "You can only host 1 event at a time",
         });
       }
-
-      return event;
     },
   })
   .mutation("update", {
@@ -156,15 +154,11 @@ const eventRouter = createRouter()
     },
   })
   .mutation("generate-review-code", {
-    input: z.object({
-      id: z.string().cuid(),
-    }),
-    async resolve({ ctx, input }) {
+    async resolve({ ctx }) {
       const r = (Math.random() + 1).toString(36).substring(7);
 
       await ctx.prisma.event.update({
         where: {
-          id: input.id,
           userId: ctx.session.user.id,
         },
         data: {
@@ -172,7 +166,7 @@ const eventRouter = createRouter()
         },
       });
 
-      return r;
+      return { code: r };
     },
   });
 
