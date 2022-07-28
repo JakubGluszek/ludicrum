@@ -291,7 +291,10 @@ const EventReviewsView: React.FC<EventReviewsViewProps> = ({ event }) => {
   });
 
   const onSubmit = handleSubmit((data) => {
-    if (event.date > new Date()) return;
+    if (event.date > new Date()) {
+      toast("It hasn't even begun yet...");
+      return;
+    }
     addReview.mutate({
       code: reviewCode?.toString(),
       eventId: event.id,
