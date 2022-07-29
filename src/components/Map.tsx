@@ -1,4 +1,3 @@
-import { Event } from "@prisma/client";
 import React from "react";
 import {
   MapContainer,
@@ -21,13 +20,13 @@ import { DatePicker, TimeInput } from "@mantine/dates";
 import toast from "react-hot-toast";
 import { useSession } from "next-auth/react";
 import { Loader } from "@mantine/core";
+import { Map as IMap } from "leaflet";
 
 type CreateEventFormValues = {
   title: string;
   description: string;
   isHost: boolean;
 };
-
 const CurrentLocation: React.FC = () => {
   const map = useMapEvents({
     locationfound(e) {
@@ -226,19 +225,24 @@ const Map: React.FC<MapProps> = ({ setSelectedEventId }) => {
   const events = trpc.useQuery(["events.all-events"]);
   const myEvent = trpc.useQuery(["events.my-event"]);
   const { data } = useSession();
+  const mapRef = React.useRef<IMap>(null);
 
-  if (myEvent.isLoading) return null;
+  React.useEffect(() => {
+    if (myEvent.isSuccess && myEvent.data) {
+      mapRef.current?.flyTo({
+        lat: parseFloat(myEvent.data.lat),
+        lng: parseFloat(myEvent.data.lng),
+      });;
+    }
+  }, [myEvent.data, myEvent.isSuccess, mapRef]);
 
   return (
     <MapContainer
+      ref={mapRef}
       doubleClickZoom={false}
       fadeAnimation={true}
       className="grow"
-      center={
-        myEvent.data
-          ? [parseFloat(myEvent.data.lat), parseFloat(myEvent.data.lng)]
-          : [51.505, -0.09]
-      }
+      center={[51.505, -0.09]} // make random maybe??
       zoom={13}
       scrollWheelZoom={true}
       touchZoom={true}
